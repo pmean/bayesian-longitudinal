@@ -153,12 +153,12 @@ summary(out$bb1)</code></pre>
 ##    plus standard error of the mean:
 ## 
 ##           Mean             SD       Naive SE Time-series SE 
-##       0.275509       0.050852       0.001608       0.001608 
+##       0.273157       0.049814       0.001575       0.001575 
 ## 
 ## 2. Quantiles for each variable:
 ## 
 ##   2.5%    25%    50%    75%  97.5% 
-## 0.1834 0.2403 0.2718 0.3079 0.3812</code></pre>
+## 0.1811 0.2367 0.2718 0.3086 0.3698</code></pre>
 <p>Now, try to run one of the examples in the BUGS manuals that is reasonably close to your problem. For our problem, the very first example in volume 1 works well.</p>
 <p><a href="http://www.openbugs.net/Examples/Rats.html" class="uri">http://www.openbugs.net/Examples/Rats.html</a></p>
 <p>I had to fix two things to get this example to run properly in jags. First, I had to remove some lines of code that used functions like post.p.value. Second, I have to transpose the matrix of data. But with these changes it ran just fine.</p>
@@ -221,16 +221,16 @@ summary(out$rats)</code></pre>
 ##    plus standard error of the mean:
 ## 
 ##           Mean     SD Naive SE Time-series SE
-## alpha0 106.380 3.5955 0.113700       0.129337
-## beta.c   6.190 0.1052 0.003326       0.003855
-## sigma    6.134 0.5974 0.018892       0.030520
+## alpha0 106.283 3.5884 0.113476       0.125482
+## beta.c   6.196 0.1072 0.003391       0.004276
+## sigma    6.108 0.6291 0.019893       0.033978
 ## 
 ## 2. Quantiles for each variable:
 ## 
 ##          2.5%     25%     50%     75%   97.5%
-## alpha0 99.380 104.065 106.504 108.667 113.362
-## beta.c  5.980   6.119   6.186   6.258   6.390
-## sigma   5.297   5.792   6.097   6.421   7.082</code></pre>
+## alpha0 99.495 104.008 106.248 108.670 113.344
+## beta.c  5.996   6.128   6.193   6.268   6.399
+## sigma   5.205   5.735   6.060   6.402   7.227</code></pre>
 <p>Now let’s see if we can modify this example to fit our particular setting.</p>
 <p>Our longitudinal setting has two measurements: pre and post. So strip the last three columns from the matrix Y. There is one within subject factor, time, which is represents by X1. There is a between subjects factor, treatment group, which is represented by X2. Let’s pretend for now that that the first twenty observations represent your treatment group and the last ten observatitons represent your control group.</p>
 <pre class="r"><code>dat &lt;- list(X1 = c(0, 1), X2 = rep(0:1, c(20, 10)), N = 30, T = 2, 
@@ -291,18 +291,18 @@ summary(out$lon)</code></pre>
 ##    plus standard error of the mean:
 ## 
 ##            Mean    SD Naive SE Time-series SE
-## alpha.c 153.009 2.649  0.08377         0.4991
-## beta1.c  50.267 1.177  0.03724         0.1619
-## beta2    -2.324 4.669  0.14765         1.1316
-## beta3    -2.064 2.112  0.06678         0.3220
+## alpha.c 154.095 2.576  0.08145         0.4494
+## beta1.c  50.186 1.136  0.03593         0.1414
+## beta2    -5.756 4.172  0.13193         1.4509
+## beta3    -1.593 1.723  0.05447         0.5767
 ## 
 ## 2. Quantiles for each variable:
 ## 
-##            2.5%     25%     50%      75%   97.5%
-## alpha.c 147.725 151.198 153.045 154.8004 158.161
-## beta1.c  47.924  49.556  50.309  51.0270  52.449
-## beta2   -10.104  -5.185  -3.261   0.7357   6.950
-## beta3    -5.465  -3.711  -2.077  -0.7342   2.578</code></pre>
+##            2.5%     25%      50%      75%    97.5%
+## alpha.c 148.583 152.538 154.2840 155.7871 158.7248
+## beta1.c  47.995  49.452  50.1588  50.9269  52.4221
+## beta2    -8.877  -7.483  -7.1730  -6.8746   9.7413
+## beta3    -5.556  -2.352  -0.9216  -0.6312   0.9299</code></pre>
 <p>Okay, so far, so good. Your next step would be to put your own data in place of the data from the example. I won’t show that here because I don’t have your data. But I hope you can try the general outline suggested here.</p>
 <ol style="list-style-type: decimal">
 <li><p>Fit the simplest model possible, a beta-binomial.</p></li>
