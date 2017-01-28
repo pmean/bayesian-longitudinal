@@ -1,13 +1,23 @@
 ---
 title: "An illustration of a Bayesian longitudinal design"
-output: html_notebook
+output:
+  html_document: default
+  html_notebook: default
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+You can find the code and some supporting text files at
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+https://github.com/pmean/bayesian-longitudinal
 
-I usually start with a very simple Bayesian analysis because if something is awry, I'll notice it faster with a simple example. The code below implements a simple beat-binomial model.
+I usually start with a very simple Bayesian analysis because if something is awry, I'll notice it faster with a simple example. The code below implements a simple beta-binomial model.
+
+Make sure that you have jags installed on your computer 
+
+http://sourceforge.net/projects/mcmc-jags/files/
+
+as well as the rjags package
+
+https://cran.r-project.org/web/packages/rjags/index.html
 
 Assume you have a beta prior distribution with alpha=4 and beta=16. You collect 60 observations and observe 18 successes and 42 failures.
 
@@ -28,10 +38,6 @@ mod <- jags.model(fnm, data=dat, quiet=TRUE)
 out$bb1 <- 
   coda.samples(mod, variable.names=mon, n.iter=1000, by=1000, progress.bar=NULL)
 summary(out$bb1)
-```
-
-```{r simple_jags_plot}
-plot(out$bb1)
 ```
 
 Now, try to run one of the examples in the BUGS manuals that is reasonably close to your problem. For our problem, the very first example in volume 1 works well. 
@@ -83,9 +89,6 @@ init <- list(alpha = c(250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 25
       alpha.c = 150, beta.c = 10,
       tau.c = 1, alpha.tau = 1, beta.tau = 1) 
 
-print(dat)
-print(init)
-
 fnm <- "jags_rats.txt"
 mon <- c("alpha0", "beta.c", "sigma")
 
@@ -97,7 +100,7 @@ summary(out$rats)
 ```
 Now let's see if we can modify this example to fit our particular setting.
 
-Our longitudinal setting has two measurements: pre and post. So strip the last three columns from the matrix Y. There is one within subject factor, time, which is represents by X1. There is a between subjects factor, treatment group, which is represented by X2.                        
+Our longitudinal setting has two measurements: pre and post. So strip the last three columns from the matrix Y. There is one within subject factor, time, which is represents by X1. There is a between subjects factor, treatment group, which is represented by X2. Let's pretend for now that  that the first twenty observations represent your treatment group and the last ten observatitons represent your control group.                        
 
 ```{r jags_longitudinal}
 dat <- list(X1 = c(0, 1), X2 = rep(0:1, c(20, 10)), N = 30, T = 2, 
@@ -135,28 +138,30 @@ dat <- list(X1 = c(0, 1), X2 = rep(0:1, c(20, 10)), N = 30, T = 2,
                   .Dim = c(2,30))) 
 
 dat$Y <- t(dat$Y)
-init <- list(alpha = rep(150, 30),
-      beta1 = 50, beta2 = 20, beta3 = 5,
+init <- list(alpha = rep(150, 30), beta1 = rep(50, 30),
+      beta1.c = 50, beta1.tau=1,
+      beta2 = 20, beta3 = 5,
       alpha.c = 150,
       tau.c = 1, alpha.tau = 1) 
 
-print(dat)
-print(init)
-
-fnm <- "jags_lon1.txt"
-mon <- c("alpha.c", "beta1", "beta2", "beta3")
+fnm <- "jags_lon.txt"
+mon <- c("alpha.c", "beta1.c", "beta2", "beta3")
 
 mod <- jags.model(fnm, dat, init, quiet=TRUE)
-out$lon1 <- 
+out$lon <- 
   coda.samples(mod, variable.names=mon, n.iter=1000, by=1000, progress.bar=NULL)
-summary(out$lon1)
+summary(out$lon)
 
 ```
 
-Okay, so far, so good. The research hypothesis, related to a non-inferiority question, is that the probability that the treatment group is not more than 2.5 units worse than the control has to be at least 80%. There are several ways to approach this, but one simple way is just to count the number of times that beta3 is less than or equal to 2.5.
+Okay, so far, so good. Your next step would be to put your own data in place of the data from the example. I won't show that here because I don't have your data. But I hope you can try the general outline suggested here.
 
-```{r counting_beta3}
-sum(unlist(out$lon1[ ,4])<=2.5)
-```
+1. Fit the simplest model possible, a beta-binomial.
 
-Since 970 of the 1000 runs are less tan or 
+2. Fit an example taken from the BUGS software that is reasonably close to your example.
+
+3. Modify the example to match some of the structure of your data set, but also keep some of the original data.
+
+4. Substitute your data for the example data.
+
+You might want to iterate step 3, making a small change to match your data a bit more closely, then another small change, and so forth.
