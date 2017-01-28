@@ -1,0 +1,154 @@
+---
+title: "An illustration of a Bayesian longitudinal design"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+I usually start with a very simple Bayesian analysis because if something is awry, I'll notice it faster with a simple example. The code below implements a simple beat-binomial model.
+
+Assume you have a beta prior distribution with alpha=4 and beta=16. You collect 60 observations and observe 18 successes and 42 failures.
+
+You don't really need jags for this. The posterior distribution is beta with alpha=4+18=22 and beta=16+42=58. The posterior mean is 0.275 and the posterior standard deviation is 0.05.
+
+
+```{r run_simple_jags_model}
+
+library("rjags")
+
+fnm <- "jags_beta_binomial.txt"
+mon <- c("pi")
+
+out <- list(description="jags output")
+
+dat <- list(a=4, b=16, x=18, n=60)
+mod <- jags.model(fnm, data=dat, quiet=TRUE)
+out$bb1 <- 
+  coda.samples(mod, variable.names=mon, n.iter=1000, by=1000, progress.bar=NULL)
+summary(out$bb1)
+```
+
+```{r simple_jags_plot}
+plot(out$bb1)
+```
+
+Now, try to run one of the examples in the BUGS manuals that is reasonably close to your problem. For our problem, the very first example in volume 1 works well. 
+
+http://www.openbugs.net/Examples/Rats.html
+
+I had to fix two things to get this example to run properly in jags. First, I had to remove some lines of code that used functions like post.p.vale. Second, I have to transpose the matrix of data. But with these changes it ran just fine.
+
+```{r run_bugs_example}
+dat <- list(x = c(8.0, 15.0, 22.0, 29.0, 36.0), xbar = 22, N = 30, T = 5,   
+      Y = structure(
+         .Data = c(151, 199, 246, 283, 320,
+                     145, 199, 249, 293, 354,
+                     147, 214, 263, 312, 328,
+                     155, 200, 237, 272, 297,
+                     135, 188, 230, 280, 323,
+                     159, 210, 252, 298, 331,
+                     141, 189, 231, 275, 305,
+                     159, 201, 248, 297, 338,
+                     177, 236, 285, 350, 376,
+                     134, 182, 220, 260, 296,
+                     160, 208, 261, 313, 352,
+                     143, 188, 220, 273, 314,
+                     154, 200, 244, 289, 325,
+                     171, 221, 270, 326, 358,
+                     163, 216, 242, 281, 312,
+                     160, 207, 248, 288, 324,
+                     142, 187, 234, 280, 316,
+                     156, 203, 243, 283, 317,
+                     157, 212, 259, 307, 336,
+                     152, 203, 246, 286, 321,
+                     154, 205, 253, 298, 334,
+                     139, 190, 225, 267, 302,
+                     146, 191, 229, 272, 302,
+                     157, 211, 250, 285, 323,
+                     132, 185, 237, 286, 331,
+                     160, 207, 257, 303, 345,
+                     169, 216, 261, 295, 333,
+                     157, 205, 248, 289, 316,
+                     137, 180, 219, 258, 291,
+                     153, 200, 244, 286, 324),
+                  .Dim = c(5,30))) 
+
+dat$Y <- t(dat$Y)
+init <- list(alpha = c(250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250,
+                  250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250),
+      beta = c(6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                  6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6),         
+      alpha.c = 150, beta.c = 10,
+      tau.c = 1, alpha.tau = 1, beta.tau = 1) 
+
+print(dat)
+print(init)
+
+fnm <- "jags_rats.txt"
+mon <- c("alpha0", "beta.c", "sigma")
+
+mod <- jags.model(fnm, dat, init, quiet=TRUE)
+out$rats <- 
+  coda.samples(mod, variable.names=mon, n.iter=1000, by=1000, progress.bar=NULL)
+summary(out$rats)
+
+```
+Now let's see if we can modify this example to fit our particular setting.
+
+Our longitudinal setting has two measurements: pre and post. So strip the last three columns from the matrix Y. There is one within subject factor, time, which is represents by X1. There is a between subjects factor, treatment group, which is represented by X2.
+
+```{r jags_longitudinal}
+dat <- list(X1 = c(0, 1), X2 = rep(0:1, c(20, 10)), N = 30, T = 2, 
+      Y = structure(
+         .Data = c(151, 199,
+                     145, 199,
+                     147, 214,
+                     155, 200,
+                     135, 188,
+                     159, 210,
+                     141, 189,
+                     159, 201,
+                     177, 236,
+                     134, 182,
+                     160, 208,
+                     143, 188,
+                     154, 200,
+                     171, 221,
+                     163, 216,
+                     160, 207,
+                     142, 187,
+                     156, 203,
+                     157, 212,
+                     152, 203,
+                     154, 205,
+                     139, 190,
+                     146, 191,
+                     157, 211,
+                     132, 185,
+                     160, 207,
+                     169, 216,
+                     157, 205,
+                     137, 180,
+                     153, 200),
+                  .Dim = c(2,30))) 
+
+dat$Y <- t(dat$Y)
+init <- list(alpha = rep(150, 30),
+      beta1 = 50, beta2 = 20,
+      alpha.c = 150,
+      tau.c = 1, alpha.tau = 1) 
+
+print(dat)
+print(init)
+
+fnm <- "jags_lon1.txt"
+mon <- c("alpha.c", "beta1", "beta2")
+
+mod <- jags.model(fnm, dat, init, quiet=TRUE)
+out$lon1 <- 
+  coda.samples(mod, variable.names=mon, n.iter=1000, by=1000, progress.bar=NULL)
+summary(out$lon1)
+
+```
