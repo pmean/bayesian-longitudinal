@@ -38,7 +38,7 @@ Now, try to run one of the examples in the BUGS manuals that is reasonably close
 
 http://www.openbugs.net/Examples/Rats.html
 
-I had to fix two things to get this example to run properly in jags. First, I had to remove some lines of code that used functions like post.p.vale. Second, I have to transpose the matrix of data. But with these changes it ran just fine.
+I had to fix two things to get this example to run properly in jags. First, I had to remove some lines of code that used functions like post.p.value. Second, I have to transpose the matrix of data. But with these changes it ran just fine.
 
 ```{r run_bugs_example}
 dat <- list(x = c(8.0, 15.0, 22.0, 29.0, 36.0), xbar = 22, N = 30, T = 5,   
@@ -97,7 +97,7 @@ summary(out$rats)
 ```
 Now let's see if we can modify this example to fit our particular setting.
 
-Our longitudinal setting has two measurements: pre and post. So strip the last three columns from the matrix Y. There is one within subject factor, time, which is represents by X1. There is a between subjects factor, treatment group, which is represented by X2.
+Our longitudinal setting has two measurements: pre and post. So strip the last three columns from the matrix Y. There is one within subject factor, time, which is represents by X1. There is a between subjects factor, treatment group, which is represented by X2.                        
 
 ```{r jags_longitudinal}
 dat <- list(X1 = c(0, 1), X2 = rep(0:1, c(20, 10)), N = 30, T = 2, 
@@ -136,7 +136,7 @@ dat <- list(X1 = c(0, 1), X2 = rep(0:1, c(20, 10)), N = 30, T = 2,
 
 dat$Y <- t(dat$Y)
 init <- list(alpha = rep(150, 30),
-      beta1 = 50, beta2 = 20,
+      beta1 = 50, beta2 = 20, beta3 = 5,
       alpha.c = 150,
       tau.c = 1, alpha.tau = 1) 
 
@@ -144,7 +144,7 @@ print(dat)
 print(init)
 
 fnm <- "jags_lon1.txt"
-mon <- c("alpha.c", "beta1", "beta2")
+mon <- c("alpha.c", "beta1", "beta2", "beta3")
 
 mod <- jags.model(fnm, dat, init, quiet=TRUE)
 out$lon1 <- 
@@ -152,3 +152,11 @@ out$lon1 <-
 summary(out$lon1)
 
 ```
+
+Okay, so far, so good. The research hypothesis, related to a non-inferiority question, is that the probability that the treatment group is not more than 2.5 units worse than the control has to be at least 80%. There are several ways to approach this, but one simple way is just to count the number of times that beta3 is less than or equal to 2.5.
+
+```{r counting_beta3}
+sum(unlist(out$lon1[ ,4])<=2.5)
+```
+
+Since 970 of the 1000 runs are less tan or 
